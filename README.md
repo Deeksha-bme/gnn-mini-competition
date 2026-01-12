@@ -28,7 +28,8 @@ The goal is to explore how node features and graph structure can be leveraged fo
 
 | Rank | Name     | Model | Metric | Score | Date |
 |------|----------|-------|--------|-------|------|
-| 1    | Deeksha  | GCN   | F1     | 0.00  | Jan 2026 |
+| 1    | Deeksha  | GCN   | Accuracy | 0.81 | Jan 2026 |
+
 
 *(The leaderboard will be updated as experiments and results improve.)*
 
