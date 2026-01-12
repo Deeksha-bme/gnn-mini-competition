@@ -1,49 +1,34 @@
-import torch
-import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from torch_geometric.datasets import Planetoid
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
 
-# Load dataset (example: Cora)
-dataset = Planetoid(root='data', name='Cora')
-data = dataset[0]
+# Load training data
+train = pd.read_csv("data/processed/train.csv")
+X = train.drop("next_role", axis=1)
+y = train["next_role"]
 
-class GCN(torch.nn.Module):
-    def __init__(self):
-        super(GCN, self).__init__()
-        self.conv1 = GCNConv(dataset.num_node_features, 16)
-        self.conv2 = GCNConv(16, dataset.num_classes)
+# Split for local validation
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = self.conv2(x, edge_index)
-        return x
+# Train baseline model
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+clf.fit(X_train, y_train)
 
-model = GCN()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+# Evaluate on validation set
+y_pred_val = clf.predict(X_val)
+score = f1_score(y_val, y_pred_val, average='macro')
+print(f"Validation Macro-F1 Score: {score:.4f}")
 
-def train():
-    model.train()
-    optimizer.zero_grad()
-    out = model(data.x, data.edge_index)
-    loss = F.cross_entropy(out[data.train_mask], data.y[data.train_mask])
-    loss.backward()
-    optimizer.step()
-    return loss.item()
+# Predict on test set
+test = pd.read_csv("data/processed/test.csv")
+test_preds = clf.predict(test)
 
-def test():
-    model.eval()
-    out = model(data.x, data.edge_index)
-    pred = out.argmax(dim=1)
-    correct = (pred[data.test_mask] == data.y[data.test_mask]).sum()
-    acc = int(correct) / int(data.test_mask.sum())
-    return acc
-
-for epoch in range(1, 101):
-    loss = train()
-    if epoch % 10 == 0:
-        acc = test()
-        print(f"Epoch: {epoch}, Loss: {loss:.4f}, Test Acc: {acc:.4f}")
-
-print("Training completed.")
-
+# Save submission
+submission = pd.DataFrame({
+    "user_id": test["user_id"],
+    "snapshot_id": test["snapshot_id"],
+    "predicted_role": test_preds
+})
+submission.to_csv("submissions/deeksha.csv", index=False)
+print("Submission saved to submissions/deeksha.csv")
