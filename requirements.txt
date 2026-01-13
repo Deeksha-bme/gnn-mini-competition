@@ -2,3 +2,5 @@ torch
 torch-geometric
 numpy
 pandas
+pandas
+scikit-learn
